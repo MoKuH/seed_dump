@@ -4,6 +4,10 @@ class SeedDump
       def active_record_enumeration(records, io, options)
         # If the records don't already have an order,
         # order them by primary key ascending.
+
+        # Rails 4 and above:
+        param_key = records.model_name.param_key
+
         if !records.respond_to?(:arel) || records.arel.orders.blank?
           records.order(Arel.sql("#{records.quoted_table_name}.#{records.quoted_primary_key} ASC"))
         end
@@ -25,7 +29,7 @@ class SeedDump
 
           # Loop through the records of the current batch
           records.offset((batch_number - 1) * batch_size).limit(cur_batch_size).each do |record|
-            record_strings << dump_record(record, options)
+            record_strings << (options[:id_only] ? "#{param_key}_#{record.id}" : dump_record(record, options))
           end
 
           yield record_strings, last_batch

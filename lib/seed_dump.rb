@@ -8,4 +8,5 @@ class SeedDump
   extend DumpMethods
 
   require 'seed_dump/railtie' if defined?(Rails)
+
 end

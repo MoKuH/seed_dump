@@ -7,9 +7,19 @@ class SeedDump
 
       io = open_io(options)
 
-      write_records_to_io(records, io, options)
+      rval = write_records_to_io(records, io, options)
 
-      ensure
+      if options[:include_has_associations] && records.respond_to?(:reflect_on_all_associations)
+        [:has_many, :has_one].each do |a|
+          records.reflect_on_all_associations(a).each do |r|
+            rval += write_records_to_io(r.klass, io, options.merge({references: true}))
+          end
+        end
+      end
+
+      rval
+
+    ensure
         io.close if io.present?
     end
 
@@ -18,17 +28,38 @@ class SeedDump
     def dump_record(record, options)
       attribute_strings = []
 
+      fk_syms = []
+      # dump the belongs_to references, handling polymorphic
+      if options[:references] && record.class.respond_to?(:reflect_on_all_associations)
+        record.class.reflect_on_all_associations(:belongs_to).each do |r|
+          assoc_name = r.name
+          fk_syms << r.foreign_key.to_sym
+          the_id = record.send(r.foreign_key)
+          if r.polymorphic?
+            fk_syms << r.foreign_type.to_sym
+            attribute_strings << dump_belongs_to_reference(assoc_name, record.send(r.foreign_type).underscore, the_id, options)
+          else
+            attribute_strings << dump_belongs_to_reference(assoc_name, r.name, the_id, options)
+          end
+        end
+      end
+
       # We select only string attribute names to avoid conflict
       # with the composite_primary_keys gem (it returns composite
       # primary key attribute names as hashes).
       record.attributes.select {|key| key.is_a?(String) || key.is_a?(Symbol) }.each do |attribute, value|
-        attribute_strings << dump_attribute_new(attribute, value, options) unless options[:exclude].include?(attribute.to_sym)
+        attribute_strings << dump_attribute_new(attribute, value, options) unless options[:exclude].include?(attribute.to_sym) || fk_syms.include?(attribute.to_sym)
       end
-
+  
       open_character, close_character = options[:import] ? ['[', ']'] : ['{', '}']
 
       "#{open_character}#{attribute_strings.join(", ")}#{close_character}"
     end
+
+    def dump_belongs_to_reference(assoc_name, foreign_key_name, id, options)
+      options[:import] ? "#{foreign_key_name}_#{id}" : "#{assoc_name}: #{foreign_key_name}_#{id}"
+    end
+
 
     def dump_attribute_new(attribute, value, options)
       options[:import] ? value_to_s(value) : "#{attribute}: #{value_to_s(value)}"
@@ -78,10 +109,13 @@ class SeedDump
                            else
                              :enumerable_enumeration
                            end
-      if options[:follow_belongs_to] && records.is_a?(ActiveRecord::Relation)
+
+      if options[:references] && enumeration_method == :active_record_enumeration
         # keep track of the objects. It's just memory, right?
         io.write('(')
-        io.write(records.map{|r| "r#{r.id}"}.join(', '))
+        send(enumeration_method, records, io, options.merge(id_only: true)) do |record_ids, last_batch|
+          io.write(record_ids.join(", "))
+        end
         io.write(') =  ')
       end
 

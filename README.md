@@ -96,6 +96,13 @@ Exclude `name` and `age` from the dump:
 irb(main):004:0> SeedDump.dump(User, exclude: [:name, :age])
 ```
 
+Dump a model and associated has_* tables, in a way that they are re-associated upon loading:
+```ruby
+2.4.1 :001 > SeedDump.dump(FooMerchant, file: '/tmp/seeds2.rb', include_has_associations: true, follow_belongs_to: true)
+(foo_merchant_685, foo_merchant_553) =  FooMerchant.create!([ { name:'merchant1'}, {name:'merchant2'} ])
+(foo_merchant_address_702, foo_merchant_address_843) = FooMerchantAddress.create!([ { foo_merchant: foo_merchant_685, address1:'somewhere'},{ foo_merchant: foo_merchant_685, address1:'somewhere'} ])
+```
+                                                    
 Options are specified as a Hash for the second argument.
 
 In the console, any relation of ActiveRecord rows can be dumped (not individual objects though)
@@ -129,3 +136,7 @@ Options are common to both the Rake task and the console, except where noted.
 `model[s]`: Restrict the dump to the specified comma-separated list of models. Default: all models. If you are using a Rails engine you can dump a specific model by passing "EngineName::ModelName". Rake task only. Example: `rake db:seed:dump MODELS="User, Position, Function"`
 
 `models_exclude`: Exclude the specified comma-separated list of models from the dump. Default: no models excluded. Rake task only. Example: `rake db:seed:dump MODELS_EXCLUDE="User"`
+
+`references`: Generate references to created records to be used for has_many or has_one relationships in related models. Format of the variable name is model's class `underscore`'d with the current record id. Example: FooMerchant with id of 1000 will be assigned to `foo_merchant_1000` 
+
+`include_has_associations`: Given a model, also dump it's has_* associations. Useful to combine with `references` option. Example: `SeedDump.dump(FooMerchant, file: '/tmp/seeds.rb', include_has_associations: true, references: true)` will dump the FooMerchant table, generating references that can be used for other-table associations, then will look for `has_many` and `has_one` associations, and dump those too. 
