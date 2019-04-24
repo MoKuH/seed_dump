@@ -10,13 +10,12 @@ class SeedDump
       append = retrieve_append_value(env)
       models.each do |model|
         model = model.limit(limit) if limit.present?
-
-        SeedDump.dump(model,
-                      append: append,
-                      batch_size: retrieve_batch_size_value(env),
-                      exclude: retrieve_exclude_value(env),
-                      file: retrieve_file_value(env),
-                      import: retrieve_import_value(env))
+        SeedDump.dump(model, append: append,
+            batch_size: retrieve_batch_size_value(env),
+            exclude: retrieve_exclude_value(env),
+            file: retrieve_file_value(env),
+            import: retrieve_import_value(env)
+        )
 
         append = true # Always append for every model after the first
                       # (append for the first model is determined by

@@ -70,18 +70,29 @@ class SeedDump
     def write_records_to_io(records, io, options)
       options[:exclude] ||= [:id, :created_at, :updated_at]
 
+
       method = options[:import] ? 'import' : 'create!'
-      io.write("#{model_for(records)}.#{method}(")
-      if options[:import]
-        io.write("[#{attribute_names(records, options).map {|name| name.to_sym.inspect}.join(', ')}], ")
-      end
-      io.write("[\n  ")
 
       enumeration_method = if records.is_a?(ActiveRecord::Relation) || records.is_a?(Class)
                              :active_record_enumeration
                            else
                              :enumerable_enumeration
                            end
+      if options[:follow_belongs_to] && records.is_a?(ActiveRecord::Relation)
+        # keep track of the objects. It's just memory, right?
+        io.write('(')
+        io.write(records.map{|r| "r#{r.id}"}.join(', '))
+        io.write(') =  ')
+      end
+
+      io.write("#{model_for(records)}.#{method}(")
+
+      if options[:import]
+        io.write("[#{attribute_names(records, options).map {|name| name.to_sym.inspect}.join(', ')}], ")
+      end
+
+      io.write("[\n  ")
+
 
       send(enumeration_method, records, io, options) do |record_strings, last_batch|
         io.write(record_strings.join(",\n  "))
