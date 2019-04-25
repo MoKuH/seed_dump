@@ -98,7 +98,7 @@ irb(main):004:0> SeedDump.dump(User, exclude: [:name, :age])
 
 Dump a model and associated has_* tables, in a way that they are re-associated upon loading:
 ```ruby
-2.4.1 :001 > SeedDump.dump(FooMerchant, file: '/tmp/seeds2.rb', include_has_associations: true, follow_belongs_to: true)
+2.4.1 :001 > SeedDump.dump(FooMerchant, file: '/tmp/seeds2.rb', include_has_associations: true, references: true)
 /tmp/seeds2.rb:
 (foo_merchant_685, foo_merchant_553) =  FooMerchant.create!([ { name:'merchant1'}, {name:'merchant2'} ])
 (foo_merchant_address_702, foo_merchant_address_843) = FooMerchantAddress.create!([ { foo_merchant: foo_merchant_685, address1:'somewhere'},{ foo_merchant: foo_merchant_553, address1:'somewhere'} ])
