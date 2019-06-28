@@ -101,6 +101,7 @@ class SeedDump
     def write_records_to_io(records, io, options)
       options[:exclude] ||= [:id, :created_at, :updated_at]
 
+      io.write("#{model_for(records)}.reset_callbacks :validate\n")
 
       method = options[:import] ? 'import' : 'create!'
 
